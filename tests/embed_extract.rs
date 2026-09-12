@@ -36,33 +36,39 @@ fn roundtrip_lsb_left() {
 
 #[test]
 fn roundtrip_spread_smoke() {
-    // Full-pipeline SS is correlation-noise sensitive for tiny payloads once a
-    // QIM capsule header + mid/side reassembly are in the path. Exact SS bit
-    // recovery is covered by `strategy_unit::ss_in_memory`. Here we only assert
-    // the CLI pipeline accepts SS and produces an output file.
     let dir = tempfile::tempdir().unwrap();
     let carrier = tone_stereo(6.0, 44100);
-    let input = dir.path().join("c.wav");
-    let output = dir.path().join("o.wav");
-    encode::encode_wav(&input, &carrier).unwrap();
+    let msg = b"ok".to_vec();
     let mut common = base_common(StrategyId::SpreadSpectrum, ChannelMode::Mid);
     common.strength = Some(0.4);
     common.shaping = audiostego::cli::Shaping::Fixed;
-    let report = embed(&EmbedArgs {
-        input,
-        message: None,
-        message_text: Some("ok".into()),
-        output: output.clone(),
-        common,
-        sidecar: Some(dir.path().join("side.json")),
-        report: None,
-        dry_run: false,
-        strict: false,
-    })
-    .expect("ss embed");
-    assert!(output.exists());
-    assert_eq!(report.strategy, "spread-spectrum");
-    assert!(report.capacity_bits >= report.used_bits);
+    let got = roundtrip_wav(&carrier, &msg, &common, dir.path()).expect("ss roundtrip");
+    assert_eq!(got, msg);
+}
+
+#[test]
+fn roundtrip_spread_ber_sweep_tone() {
+    // Mirrors `ber_sweep`: 440 Hz stereo tone, band 1000:6000, CRC, mid.
+    let dir = tempfile::tempdir().unwrap();
+    let sr = 44100u32;
+    let n = (4.0 * sr as f32) as usize;
+    let mut s = vec![0.0f32; n];
+    for i in 0..n {
+        let t = i as f32 / sr as f32;
+        s[i] = 0.4 * (2.0 * std::f32::consts::PI * 440.0 * t).sin();
+    }
+    let carrier = audiostego::audio::AudioBuffer::new(sr, vec![s.clone(), s]);
+    let msg = b"benchmark-message-0123456789";
+    let mut common = base_common(StrategyId::SpreadSpectrum, ChannelMode::Mid);
+    common.fft_size = Some(4096);
+    common.hop_div = Some(1);
+    common.band = Some("1000:6000".into());
+    common.strength = Some(0.05);
+    common.shaping = audiostego::cli::Shaping::Masked;
+    common.ecc = Some("crc".into());
+    common.key = Some("bench".into());
+    let got = roundtrip_wav(&carrier, msg, &common, dir.path()).expect("ss ber-sweep tone");
+    assert_eq!(got, msg);
 }
 
 #[test]

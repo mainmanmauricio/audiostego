@@ -95,6 +95,78 @@ fn ss_in_memory() {
 }
 
 #[test]
+fn ss_in_memory_sparse_tone_low_strength() {
+    // ber_sweep uses a 440 Hz tone with band 1000–6000 Hz: the mark sits on
+    // leakage/empty bins, which used to lose CRC at every strength.
+    let fft = 4096usize;
+    let hop = 4096usize;
+    let sr = 44100u32;
+    let engine = StftEngine::new(fft, hop).unwrap();
+    let mut signal = vec![0.0f32; fft * 20];
+    for (i, s) in signal.iter_mut().enumerate() {
+        let t = i as f32 / sr as f32;
+        *s = 0.4 * (2.0 * std::f32::consts::PI * 440.0 * t).sin();
+    }
+    let mut frames = engine.analysis(&signal).unwrap();
+    let lo = ((1000.0 * fft as f32 / sr as f32).round() as usize).max(1);
+    let hi = ((6000.0 * fft as f32 / sr as f32).round() as usize).min(fft / 2);
+    let bins = lo..hi;
+    let key = b"bench".to_vec();
+    let strat = strategy::make_strategy(StrategyId::SpreadSpectrum);
+    let strength = 0.05f32;
+    let ctx0 = FrameCtx {
+        index: 0,
+        bins: bins.clone(),
+        sample_rate: sr,
+        strength,
+        shaping: Shaping::Masked,
+        key: key.clone(),
+    };
+    let bpf = strat.capacity_bits(&ctx0);
+    let mut expected: Vec<bool> = Vec::new();
+    for (f, frame) in frames.iter_mut().enumerate() {
+        let ctx = FrameCtx {
+            index: f,
+            bins: bins.clone(),
+            sample_rate: sr,
+            strength,
+            shaping: Shaping::Masked,
+            key: key.clone(),
+        };
+        let bits: Vec<bool> = (0..bpf).map(|i| (i + f) % 2 == 0).collect();
+        expected.extend_from_slice(&bits);
+        strat.embed_frame(frame, &bits, &ctx);
+    }
+    let mut synth = engine.synthesis(&frames).unwrap();
+    synth.truncate(signal.len());
+    let frames2 = engine.analysis(&synth).unwrap();
+    let mut got = Vec::new();
+    for (f, frame) in frames2.iter().enumerate() {
+        let ctx = FrameCtx {
+            index: f,
+            bins: bins.clone(),
+            sample_rate: sr,
+            strength,
+            shaping: Shaping::Masked,
+            key: key.clone(),
+        };
+        strat.extract_frame(frame, None, &mut got, &ctx);
+    }
+    got.truncate(expected.len());
+    let errors = expected
+        .iter()
+        .zip(got.iter())
+        .filter(|(a, b)| a != b)
+        .count();
+    assert_eq!(
+        errors,
+        0,
+        "sparse-tone SS errors={errors}/{}",
+        expected.len()
+    );
+}
+
+#[test]
 fn differential_in_memory() {
     let fft = 2048usize;
     let hop = 2048usize;
