@@ -3,7 +3,8 @@
 mod common;
 
 use audiostego::audio::encode;
-use audiostego::cli::{ChannelMode, InfoArgs, StrategyId, VerifyArgs};
+use audiostego::audio::ffmpeg;
+use audiostego::cli::{ChannelMode, InfoArgs, LossyProfile, OutputFormat, StrategyId, VerifyArgs};
 use audiostego::engine::{info, verify};
 use common::{default_common, extract_capsule_only, music_carrier, testdata_music_path};
 
@@ -39,6 +40,45 @@ fn music_verify_lossless() {
     })
     .expect("verify music");
     assert!(report.extract_ok);
+    assert_eq!(report.ber, 0.0);
+}
+
+#[test]
+fn music_verify_lossy_mp3() {
+    if !ffmpeg::ffmpeg_available() {
+        eprintln!("skipping: ffmpeg not available");
+        return;
+    }
+    let Some(path) = testdata_music_path() else {
+        eprintln!("skipping: testdata/music/carrier-music.flac not present");
+        return;
+    };
+    let dir = tempfile::tempdir().unwrap();
+    let mut common = default_common(StrategyId::Qim, ChannelMode::Mid);
+    common.lossy = LossyProfile::Mp3;
+    common.output_format = OutputFormat::Mp3;
+    common.fft_size = None;
+    common.hop_div = None;
+    common.band = None;
+    common.strength = None;
+    common.ecc = None;
+    common.key = None;
+
+    let report = verify(&VerifyArgs {
+        input: path,
+        message: None,
+        message_text: Some("ok".into()),
+        work_dir: Some(dir.path().join("work")),
+        common,
+        strict: false,
+        report: None,
+    })
+    .expect("verify mp3");
+    assert!(
+        report.extract_ok,
+        "mp3 verify failed BER={} recovered={}/{}",
+        report.ber, report.recovered_bytes, report.expected_bytes
+    );
     assert_eq!(report.ber, 0.0);
 }
 

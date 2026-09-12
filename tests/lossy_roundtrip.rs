@@ -57,6 +57,15 @@ fn lossy_profiles_retune_like_mp3() {
         assert_eq!(resolved.strategy, StrategyId::SpreadSpectrum, "{lossy:?}");
         assert_eq!(resolved.output_format, expected_fmt, "{lossy:?}");
         assert!(resolved.fft_size >= 4096, "{lossy:?}");
+        assert_eq!(
+            resolved.hop, resolved.fft_size,
+            "{lossy:?} hop_div should be 1"
+        );
+        assert!(
+            (resolved.strength - 0.25).abs() < 1e-5,
+            "{lossy:?} strength={}",
+            resolved.strength
+        );
         assert!(
             matches!(resolved.ecc, EccMode::ReedSolomon { parity: 16 }),
             "{lossy:?} ecc={:?}",

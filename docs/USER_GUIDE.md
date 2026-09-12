@@ -192,7 +192,7 @@ When unsure, leave these unset and use `info` / `verify` rather than guessing.
 ## Sidecar and sync
 
 - **Sidecar JSON** (`--sidecar` on embed; pass the same path on extract) stores parameters and related metadata so you are not solely dependent on reading the in-band capsule.
-- **Capsule-only extract** (no sidecar) works when the embed used one of the two **resolve presets**: lossless defaults (`fft=2048`, `hop_div=1`, band ≈500–12000 Hz) or lossy-profile defaults (`fft=4096`, `hop_div=2`, band ≈1000–8000 Hz). Custom `--band` / `--fft-size` / `--hop-div` still need a sidecar (or matching CLI overrides).
+- **Capsule-only extract** (no sidecar) works when the embed used one of the two **resolve presets**: lossless defaults (`fft=2048`, `hop_div=1`, band ≈500–12000 Hz) or lossy-profile defaults (`fft=4096`, `hop_div=1`, band ≈1000–8000 Hz). Custom `--band` / `--fft-size` / `--hop-div` still need a sidecar (or matching CLI overrides).
 - A **keyed sync preamble** is prepended so extract can find the payload start even with some leading delay (codec priming, accidental padding). Widen search with `--max-offset` if needed.
 - Prefer keeping sidecar + key together with the loaded file for anyone who must extract later.
 

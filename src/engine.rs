@@ -232,24 +232,18 @@ pub fn embed(args: &EmbedArgs) -> Result<EmbedReport> {
 
         // Split body bits across channels for BothSplit.
         let channel_body_bits: Vec<bool> = match params.channel_mode {
-            ChannelMode::BothSplit if plan.work.len() >= 2 => {
-                body_bit_vec
-                    .iter()
-                    .enumerate()
-                    .filter(|(i, _)| i % 2 == ch_i)
-                    .map(|(_, b)| *b)
-                    .collect()
-            }
+            ChannelMode::BothSplit if plan.work.len() >= 2 => body_bit_vec
+                .iter()
+                .enumerate()
+                .filter(|(i, _)| i % 2 == ch_i)
+                .map(|(_, b)| *b)
+                .collect(),
             _ => body_bit_vec.clone(),
         };
 
         let bpf = bits_per_frame;
-        let alloc = BitAllocation::plan(
-            body_frames,
-            bpf,
-            channel_body_bits.len(),
-            &params.key_bytes,
-        );
+        let alloc =
+            BitAllocation::plan(body_frames, bpf, channel_body_bits.len(), &params.key_bytes);
 
         // Embed header in first header_frames using spread-spectrum.
         // scale patched later — first pass uses 1.0
@@ -404,12 +398,7 @@ pub fn embed(args: &EmbedArgs) -> Result<EmbedReport> {
         metrics::compute_metrics(&plan.work[0][..n], &payload[..n])
     };
 
-    encode::encode_file(
-        &args.output,
-        &stego,
-        params.output_format,
-        params.bitrate,
-    )?;
+    encode::encode_file(&args.output, &stego, params.output_format, params.bitrate)?;
 
     let report = report_base(scale_factor, snr, false);
     write_optional_json(&args.report, &report)?;
@@ -454,8 +443,8 @@ pub fn extract(args: &ExtractArgs) -> Result<(Vec<u8>, ExtractReport)> {
         .unwrap_or(ChannelMode::Mid);
     // Track whether STFT knobs came from CLI/sidecar so we may retry the
     // lossy resolve preset when the capsule is missing and nothing was set.
-    let fft_from_user = args.fft_size.is_some()
-        || sidecar.as_ref().map(|s| s.params.fft_size).is_some();
+    let fft_from_user =
+        args.fft_size.is_some() || sidecar.as_ref().map(|s| s.params.fft_size).is_some();
     let hop_from_user = args.hop_div.is_some()
         || sidecar
             .as_ref()
@@ -476,7 +465,11 @@ pub fn extract(args: &ExtractArgs) -> Result<(Vec<u8>, ExtractReport)> {
     // broke capsule-only extract for the documented lossless path.
     let mut hop_div = args
         .hop_div
-        .or_else(|| sidecar.as_ref().map(|s| (s.params.fft_size / s.params.hop) as u32))
+        .or_else(|| {
+            sidecar
+                .as_ref()
+                .map(|s| (s.params.fft_size / s.params.hop) as u32)
+        })
         .unwrap_or(1);
     let mut strength = args
         .strength
@@ -492,10 +485,21 @@ pub fn extract(args: &ExtractArgs) -> Result<(Vec<u8>, ExtractReport)> {
     };
     let mut scale_factor = sidecar.as_ref().map(|s| s.scale_factor).unwrap_or(1.0);
     let scale_from_sidecar = sidecar.as_ref().map(|s| s.scale_factor).is_some();
-    let mut ecc = crate::cli::EccMode::Crc;
-    let mut encrypt = false;
+    // Capsule overwrites these when the QIM header survives. After lossy
+    // codecs it often does not, so sidecar must restore ECC/encrypt/shaping.
+    let mut ecc = sidecar
+        .as_ref()
+        .and_then(|s| crate::cli::EccMode::parse(&s.params.ecc).ok())
+        .unwrap_or(crate::cli::EccMode::Crc);
+    let mut encrypt = sidecar.as_ref().map(|s| s.params.encrypt).unwrap_or(false);
     let mut payload_len: Option<usize> = sidecar.as_ref().map(|s| s.body_bytes);
-    let shaping = crate::cli::Shaping::Masked;
+    let shaping = sidecar
+        .as_ref()
+        .map(|s| match s.params.shaping.as_str() {
+            "fixed" => crate::cli::Shaping::Fixed,
+            _ => crate::cli::Shaping::Masked,
+        })
+        .unwrap_or(crate::cli::Shaping::Masked);
 
     // Sync via keyed preamble correlation, then skip the preamble itself.
     let mut work = channels::extract_work_channels(&stego, &channel_mode)?;
@@ -565,9 +569,10 @@ pub fn extract(args: &ExtractArgs) -> Result<(Vec<u8>, ExtractReport)> {
     // missing and the caller did not set hop/fft/band, retry the lossy preset.
     if header_opt.is_none() && stft_unset {
         fft_size = 4096;
-        hop_div = 2;
+        hop_div = 1;
         band_lo = 1000.0;
         band_hi = 8000.0_f32.min(sample_rate as f32 * 0.45);
+        strength = 0.25;
         engine = stft::StftEngine::new(fft_size, fft_size / hop_div as usize)?;
         frames = engine.analysis(&mono_after_sync)?;
         bin_lo = profile::hz_to_bin(band_lo, sample_rate, fft_size).max(1);
@@ -624,6 +629,8 @@ pub fn extract(args: &ExtractArgs) -> Result<(Vec<u8>, ExtractReport)> {
         bin_hi = profile::hz_to_bin(band_hi, sample_rate, fft_size)
             .min(fft_size / 2)
             .max(bin_lo + 1);
+    } else if sidecar.is_some() {
+        tracing::debug!("capsule header not recovered; using sidecar parameters");
     } else {
         tracing::warn!("capsule header not recovered; using CLI/sidecar parameters");
     }
@@ -951,7 +958,7 @@ pub fn verify(args: &VerifyArgs) -> Result<VerifyReport> {
         },
         output: recovered.clone(),
         sidecar: Some(sidecar),
-        max_offset: 8192,
+        max_offset: 16384,
         key: args.common.key.clone(),
         strategy: None,
         channel_mode: None,

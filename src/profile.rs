@@ -85,12 +85,12 @@ pub fn resolve(
 ) -> Result<ResolvedParams> {
     let mut upgraded = Vec::new();
     let mut strategy = common.strategy;
-    let mut fft_size = common.fft_size.unwrap_or(if common.lossy.is_off() {
-        2048
-    } else {
-        4096
-    });
-    let hop_div = common.hop_div.unwrap_or(if common.lossy.is_off() { 1 } else { 2 });
+    let mut fft_size = common
+        .fft_size
+        .unwrap_or(if common.lossy.is_off() { 2048 } else { 4096 });
+    // hop_div=1 (non-overlapping rectangular STFT) is required for reliable
+    // per-frame marks; overlap (2/4) smears them — especially under --lossy.
+    let hop_div = common.hop_div.unwrap_or(1);
     if hop_div != 1 && hop_div != 2 && hop_div != 4 {
         bail!("hop_div must be 1, 2, or 4");
     }
@@ -109,11 +109,9 @@ pub fn resolve(
         None => (default_lo, default_hi),
     };
 
-    let mut strength = common.strength.unwrap_or(if common.lossy.is_off() {
-        0.05
-    } else {
-        0.15
-    });
+    let mut strength = common
+        .strength
+        .unwrap_or(if common.lossy.is_off() { 0.05 } else { 0.25 });
 
     let ecc = match &common.ecc {
         Some(s) => EccMode::parse(s).map_err(|e| anyhow::anyhow!(e))?,
@@ -146,9 +144,9 @@ pub fn resolve(
             fft_size = 4096;
             upgraded.push("fft_size raised to 4096 for lossy profile".into());
         }
-        if common.strength.is_none() && strength < 0.15 {
-            strength = 0.15;
-            upgraded.push("strength raised to 0.15 for lossy profile".into());
+        if common.strength.is_none() && strength < 0.25 {
+            strength = 0.25;
+            upgraded.push("strength raised to 0.25 for lossy profile".into());
         }
     }
 
