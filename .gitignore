@@ -1,0 +1,11 @@
+/target
+/Cargo.lock
+*.wav
+*.flac
+*.mp3
+*.opus
+*.aac
+*.ogg
+*.json
+!testdata/**
+.DS_Store
