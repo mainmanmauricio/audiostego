@@ -14,23 +14,8 @@ if ! command -v ffmpeg >/dev/null 2>&1; then
   exit 0
 fi
 
-resolve_bin() {
-  local td="${CARGO_TARGET_DIR:-$ROOT/target}"
-  if [[ -x "$td/release/audiostego" ]]; then
-    echo "$td/release/audiostego"
-  elif [[ -x "$td/debug/audiostego" ]]; then
-    echo "$td/debug/audiostego"
-  elif [[ -x "$ROOT/target/release/audiostego" ]]; then
-    echo "$ROOT/target/release/audiostego"
-  elif [[ -x "$ROOT/target/debug/audiostego" ]]; then
-    echo "$ROOT/target/debug/audiostego"
-  elif command -v audiostego >/dev/null 2>&1; then
-    command -v audiostego
-  else
-    echo "audiostego binary not found; run: cargo build" >&2
-    exit 1
-  fi
-}
+# shellcheck source=resolve-bin.sh
+. "$(dirname "$0")/resolve-bin.sh"
 BIN="$(resolve_bin)"
 
 "$BIN" verify -i "$CARRIER" --message-text 'ok' --lossy mp3 --output-format mp3

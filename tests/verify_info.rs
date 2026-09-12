@@ -90,3 +90,33 @@ fn verify_lossy_mp3_smoke() {
         );
     }
 }
+
+#[test]
+fn verify_lossy_wav_profile_returns_report_on_extract_failure() {
+    // Lossy-profile STFT into WAV (no ffmpeg). Spread-spectrum body CRC may
+    // fail on a short tone; verify must still return a report.
+    let dir = tempfile::tempdir().unwrap();
+    let carrier = tone_stereo(8.0, 44100);
+    let input = dir.path().join("c.wav");
+    encode::encode_wav(&input, &carrier).unwrap();
+    let mut common = base_common(StrategyId::Qim, ChannelMode::Mid);
+    common.lossy = LossyProfile::Mp3;
+    common.output_format = audiostego::cli::OutputFormat::Wav;
+    common.fft_size = None;
+    common.hop_div = None;
+    common.band = None;
+    common.strength = None;
+    common.ecc = None;
+
+    let report = verify(&VerifyArgs {
+        input,
+        message: None,
+        message_text: Some("ok".into()),
+        work_dir: Some(dir.path().join("work")),
+        common,
+        strict: false,
+        report: None,
+    })
+    .expect("verify must return a report even if extract CRC fails");
+    assert_eq!(report.expected_bytes, 2);
+}

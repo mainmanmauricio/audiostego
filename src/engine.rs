@@ -962,11 +962,20 @@ pub fn verify(args: &VerifyArgs) -> Result<VerifyReport> {
         report: None,
     };
 
-    let (got, _er) = extract(&extract_args)?;
+    let (got, extract_ok) = match extract(&extract_args) {
+        Ok((got, _)) => {
+            let ok = got == message;
+            (got, ok)
+        }
+        Err(e) => {
+            tracing::warn!("verify extract failed: {e:#}");
+            (Vec::new(), false)
+        }
+    };
     let ber = metrics::bit_error_rate(&message, &got);
     let report = VerifyReport {
         embed: emb,
-        extract_ok: got == message,
+        extract_ok,
         ber,
         recovered_bytes: got.len(),
         expected_bytes: message.len(),
