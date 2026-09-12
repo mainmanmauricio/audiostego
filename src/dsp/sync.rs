@@ -1,9 +1,9 @@
 //! Sync via key-derived m-sequence preamble correlation.
 
 use anyhow::Result;
+use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
-use rand::Rng;
 use sha2::{Digest, Sha256};
 
 /// Generate a bipolar (±1) m-sequence-like preamble from the key.

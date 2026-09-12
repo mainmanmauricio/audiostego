@@ -57,9 +57,8 @@ pub fn music_like_stereo(seconds: f32, sr: u32) -> AudioBuffer {
             r += a * (2.0 * std::f32::consts::PI * fr * t).sin();
         }
         // Soft noise
-        let noise = ((i.wrapping_mul(1103515245).wrapping_add(12345) >> 16) as f32 / 32768.0
-            - 1.0)
-            * 0.02;
+        let noise =
+            ((i.wrapping_mul(1103515245).wrapping_add(12345) >> 16) as f32 / 32768.0 - 1.0) * 0.02;
         l += noise;
         r += noise * 0.9;
         // Periodic transient click every ~0.5 s
@@ -76,8 +75,7 @@ pub fn music_like_stereo(seconds: f32, sr: u32) -> AudioBuffer {
 
 /// Path to the optional vendored CC0 clip, if present on disk.
 pub fn testdata_music_path() -> Option<PathBuf> {
-    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("testdata/music/carrier-music.flac");
+    let p = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("testdata/music/carrier-music.flac");
     if p.is_file() {
         Some(p)
     } else {

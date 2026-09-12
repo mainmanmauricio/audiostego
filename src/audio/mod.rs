@@ -59,9 +59,6 @@ impl AudioBuffer {
     }
 
     pub fn clone_channel(&self, idx: usize) -> Vec<f32> {
-        self.channels
-            .get(idx)
-            .cloned()
-            .unwrap_or_default()
+        self.channels.get(idx).cloned().unwrap_or_default()
     }
 }

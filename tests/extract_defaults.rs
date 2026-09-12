@@ -17,9 +17,13 @@ fn capsule_only_lossless_qim_recovers() {
     let dir = tempfile::tempdir().unwrap();
     let carrier = tone_stereo(4.0, 44100);
     let msg = b"capsule-only-ok";
-    let (got, _) =
-        extract_capsule_only(&carrier, msg, &default_common(StrategyId::Qim, ChannelMode::Mid), dir.path())
-            .expect("capsule-only extract");
+    let (got, _) = extract_capsule_only(
+        &carrier,
+        msg,
+        &default_common(StrategyId::Qim, ChannelMode::Mid),
+        dir.path(),
+    )
+    .expect("capsule-only extract");
     assert_eq!(got, msg);
 }
 
@@ -190,10 +194,7 @@ fn over_capacity_info_and_embed() {
         strict: false,
     });
     let msg = format!("{:#}", err.unwrap_err());
-    assert!(
-        msg.contains("message+ECC needs"),
-        "unexpected error: {msg}"
-    );
+    assert!(msg.contains("message+ECC needs"), "unexpected error: {msg}");
 }
 
 #[test]
@@ -373,13 +374,6 @@ fn cli_channel_parse_and_message_conflict() {
     assert!(conflict.is_err());
 
     // Embed without message parses; load_message fails at runtime.
-    let parsed = Cli::try_parse_from([
-        "audiostego",
-        "embed",
-        "-i",
-        "in.wav",
-        "-o",
-        "out.wav",
-    ]);
+    let parsed = Cli::try_parse_from(["audiostego", "embed", "-i", "in.wav", "-o", "out.wav"]);
     assert!(parsed.is_ok());
 }

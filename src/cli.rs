@@ -426,10 +426,7 @@ impl OutputFormat {
     }
 
     pub fn is_lossy(self) -> bool {
-        matches!(
-            self,
-            Self::Mp3 | Self::Opus | Self::Aac | Self::Vorbis
-        )
+        matches!(self, Self::Mp3 | Self::Opus | Self::Aac | Self::Vorbis)
     }
 }
 

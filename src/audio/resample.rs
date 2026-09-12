@@ -19,14 +19,8 @@ pub fn resample(audio: &AudioBuffer, target_rate: u32) -> Result<AudioBuffer> {
         window: WindowFunction::BlackmanHarris2,
     };
     let chunk = 1024usize;
-    let mut resampler = SincFixedIn::<f32>::new(
-        ratio,
-        2.0,
-        params,
-        chunk,
-        audio.num_channels(),
-    )
-    .context("create resampler")?;
+    let mut resampler = SincFixedIn::<f32>::new(ratio, 2.0, params, chunk, audio.num_channels())
+        .context("create resampler")?;
 
     let n = audio.num_frames();
     let mut pos = 0usize;
@@ -39,9 +33,7 @@ pub fn resample(audio: &AudioBuffer, target_rate: u32) -> Result<AudioBuffer> {
             .map(|c| &c[pos..pos + chunk])
             .collect();
         let owned: Vec<Vec<f32>> = waves.iter().map(|s| s.to_vec()).collect();
-        let result = resampler
-            .process(&owned, None)
-            .context("resample chunk")?;
+        let result = resampler.process(&owned, None).context("resample chunk")?;
         for (ch, data) in result.into_iter().enumerate() {
             out_ch[ch].extend(data);
         }

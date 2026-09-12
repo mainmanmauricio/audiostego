@@ -152,7 +152,12 @@ pub fn build_body(params: &ResolvedParams, message: &[u8]) -> Result<Vec<u8>> {
     ecc::protect(&plain, params.ecc)
 }
 
-pub fn decode_body(params_encrypt: bool, key: &[u8], ecc_mode: EccMode, body: &[u8]) -> Result<Vec<u8>> {
+pub fn decode_body(
+    params_encrypt: bool,
+    key: &[u8],
+    ecc_mode: EccMode,
+    body: &[u8],
+) -> Result<Vec<u8>> {
     let recovered = ecc::recover(body, ecc_mode)?;
     if params_encrypt {
         crypto::decrypt(key, &recovered)

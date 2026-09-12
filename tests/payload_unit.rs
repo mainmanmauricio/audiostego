@@ -145,10 +145,17 @@ fn capsule_body_plain_crc_and_encrypt_rs() {
 
     let enc = resolved_for_capsule(true, "rs:16");
     let body = capsule::build_body(&enc, msg).unwrap();
-    let got = capsule::decode_body(true, &enc.key_bytes, EccMode::ReedSolomon { parity: 16 }, &body)
-        .unwrap();
+    let got = capsule::decode_body(
+        true,
+        &enc.key_bytes,
+        EccMode::ReedSolomon { parity: 16 },
+        &body,
+    )
+    .unwrap();
     assert_eq!(got, msg);
-    assert!(capsule::decode_body(true, b"wrong", EccMode::ReedSolomon { parity: 16 }, &body).is_err());
+    assert!(
+        capsule::decode_body(true, b"wrong", EccMode::ReedSolomon { parity: 16 }, &body).is_err()
+    );
 }
 
 #[test]

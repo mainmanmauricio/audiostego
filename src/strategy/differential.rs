@@ -2,7 +2,7 @@
 
 use crate::cli::StrategyId;
 use crate::strategy::{
-    bipolar_bit, enforce_hermitian_edges, frame_rng, band_bins, EmbedStrategy, FrameCtx,
+    band_bins, bipolar_bit, enforce_hermitian_edges, frame_rng, EmbedStrategy, FrameCtx,
 };
 use num_complex::Complex;
 use rand::Rng;

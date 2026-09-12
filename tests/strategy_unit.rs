@@ -1,9 +1,9 @@
 //! In-memory strategy sanity checks (no WAV I/O).
 
 use audiostego::cli::Shaping;
+use audiostego::cli::StrategyId;
 use audiostego::dsp::stft::StftEngine;
 use audiostego::strategy::{self, FrameCtx};
-use audiostego::cli::StrategyId;
 
 fn tone(n: usize) -> Vec<f32> {
     let mut s = vec![0.0f32; n];

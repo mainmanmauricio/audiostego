@@ -3,7 +3,10 @@
 use bitvec::prelude::*;
 
 pub fn bytes_to_bits(data: &[u8]) -> BitVec<u8, Msb0> {
-    BitVec::from_iter(data.iter().flat_map(|b| (0..8).rev().map(move |i| (b >> i) & 1 == 1)))
+    BitVec::from_iter(
+        data.iter()
+            .flat_map(|b| (0..8).rev().map(move |i| (b >> i) & 1 == 1)),
+    )
 }
 
 pub fn bits_to_bytes(bits: &BitSlice<u8, Msb0>) -> Vec<u8> {

@@ -1,7 +1,9 @@
 //! Simple BER / capacity sweep bench (run with `cargo bench` or `--release -- --bench`).
 
 use audiostego::audio::AudioBuffer;
-use audiostego::cli::{ChannelMode, CommonEmbedParams, LossyProfile, OutputFormat, Shaping, StrategyId};
+use audiostego::cli::{
+    ChannelMode, CommonEmbedParams, LossyProfile, OutputFormat, Shaping, StrategyId,
+};
 use audiostego::dsp::metrics::bit_error_rate;
 use audiostego::engine::roundtrip_wav;
 use std::time::Instant;
@@ -56,14 +58,7 @@ fn main() {
             match result {
                 Ok(got) => {
                     let ber = bit_error_rate(msg, &got);
-                    println!(
-                        "{},{},{:.6},{},{}",
-                        strategy,
-                        strength,
-                        ber,
-                        ms,
-                        got == msg
-                    );
+                    println!("{},{},{:.6},{},{}", strategy, strength, ber, ms, got == msg);
                 }
                 Err(e) => {
                     println!("{},{},error,{},false  # {e:#}", strategy, strength, ms);

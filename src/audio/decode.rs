@@ -66,9 +66,7 @@ fn decode_symphonia(path: &Path) -> Result<AudioBuffer> {
                 decoder.reset();
                 continue;
             }
-            Err(SymError::IoError(e))
-                if e.kind() == std::io::ErrorKind::UnexpectedEof =>
-            {
+            Err(SymError::IoError(e)) if e.kind() == std::io::ErrorKind::UnexpectedEof => {
                 break;
             }
             Err(e) => return Err(e).context("read packet"),
@@ -114,20 +112,16 @@ fn append_decoded(channels: &mut Vec<Vec<f32>>, decoded: &AudioBufferRef<'_>) ->
         AudioBufferRef::U16(buf) => {
             convert_int(channels, buf, |s| (s as f32 / 65535.0) * 2.0 - 1.0)
         }
-        AudioBufferRef::U24(buf) => {
-            convert_int(channels, buf, |s| {
-                let v = s.inner() as f32;
-                (v / 8_388_607.0) * 2.0 - 1.0
-            })
-        }
+        AudioBufferRef::U24(buf) => convert_int(channels, buf, |s| {
+            let v = s.inner() as f32;
+            (v / 8_388_607.0) * 2.0 - 1.0
+        }),
         AudioBufferRef::U32(buf) => {
             convert_int(channels, buf, |s| (s as f32 / u32::MAX as f32) * 2.0 - 1.0)
         }
         AudioBufferRef::S8(buf) => convert_int(channels, buf, |s| s as f32 / 128.0),
         AudioBufferRef::S16(buf) => convert_int(channels, buf, |s| s as f32 / 32768.0),
-        AudioBufferRef::S24(buf) => {
-            convert_int(channels, buf, |s| s.inner() as f32 / 8_388_608.0)
-        }
+        AudioBufferRef::S24(buf) => convert_int(channels, buf, |s| s.inner() as f32 / 8_388_608.0),
         AudioBufferRef::S32(buf) => convert_int(channels, buf, |s| s as f32 / 2_147_483_648.0),
         AudioBufferRef::F64(buf) => {
             for ch in 0..spec_channels {
@@ -138,11 +132,8 @@ fn append_decoded(channels: &mut Vec<Vec<f32>>, decoded: &AudioBufferRef<'_>) ->
     Ok(())
 }
 
-fn convert_int<S, F>(
-    channels: &mut [Vec<f32>],
-    buf: &symphonia::core::audio::AudioBuffer<S>,
-    f: F,
-) where
+fn convert_int<S, F>(channels: &mut [Vec<f32>], buf: &symphonia::core::audio::AudioBuffer<S>, f: F)
+where
     S: Copy + symphonia::core::sample::Sample,
     F: Fn(S) -> f32,
 {

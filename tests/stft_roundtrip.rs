@@ -28,8 +28,5 @@ fn stft_istft_roundtrip_error_below_1e6() {
         err_e += (e as f64).powi(2);
     }
     let rel = (err_e / energy.max(1e-20)).sqrt();
-    assert!(
-        max_err < 1e-5 && rel < 1e-6,
-        "max_err={max_err} rel={rel}"
-    );
+    assert!(max_err < 1e-5 && rel < 1e-6, "max_err={max_err} rel={rel}");
 }
